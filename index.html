@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>SNAKE GAME - Rắn Săn Mồi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-container">
+    <h1>SNAKE GAME</h1>
+
+    <div class="main-wrapper">
+        <div class="container">
+            <div class="scoreboard">
+                <div class="score-box">
+                    Điểm: <span id="currentScore">0</span>
+                </div>
+                <div class="score-box">
+                    Kỷ lục: <span id="highScore">0</span>
+                </div>
+            </div>
+
+            <div class="game-wrapper">
+                <canvas id="gameCanvas" width="540" height="540"></canvas>
+                <div id="startOverlay" class="overlay">
+                    <h2>Rắn Săn Mồi</h2>
+                    <p>Chọn màu rắn yêu thích của bạn và nhấn bắt đầu để chọn cấp độ.</p>
+                    <button class="btn" id="startBtn">Bắt Đầu</button>
+                </div>
+            </div>
+
+            <div class="controls-footer">
+                <div class="color-picker-container">
+                    <span>Màu rắn:</span>
+                    <div class="color-options" id="colorOptions">
+                        <div class="color-dot active" data-color="#2ecc71" style="background-color: #2ecc71;"></div>
+                        <div class="color-dot" data-color="#e74c3c" style="background-color: #e74c3c;"></div>
+                        <div class="color-dot" data-color="#3498db" style="background-color: #3498db;"></div>
+                        <div class="color-dot" data-color="#f1c40f" style="background-color: #f1c40f;"></div>
+                    </div>
+                </div>
+                <button class="action-secondary-btn" id="openLevelBtn">Chọn Level</button>
+            </div>
+        </div>
+
+        <div class="external-side-controls">
+            <button class="action-btn" id="pauseBtn">Tạm Dừng</button>
+            <button class="action-btn" id="resumeBtn" style="display: none;">Tiếp Tục</button>
+            <button class="action-btn" id="restartBtn">Chơi Lại</button>
+        </div>
+    </div>
+
+    <div class="instruction-text">
+        Dùng các phím mũi tên hoặc WASD để điều khiển, nhấn Space để tạm dừng/tiếp tục.
+    </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
