@@ -23,10 +23,31 @@
 
             <div class="game-wrapper">
                 <canvas id="gameCanvas" width="540" height="540"></canvas>
+
                 <div id="startOverlay" class="overlay">
                     <h2>Rắn Săn Mồi</h2>
                     <p>Chọn màu rắn yêu thích của bạn và nhấn bắt đầu để chọn cấp độ.</p>
                     <button class="btn" id="startBtn">Bắt Đầu</button>
+                </div>
+
+                <div id="levelOverlay" class="overlay hidden">
+                    <h2>Chọn Cấp Độ</h2>
+                    <p>Chọn level từ 1 đến 10</p>
+                    <div class="levels-grid" id="levelsGrid">
+                    </div>
+                    <button class="btn" id="confirmLevelBtn" style="width: 100%; max-width: 260px;">Chơi Ngay</button>
+                </div>
+
+                <div id="pauseOverlay" class="overlay hidden">
+                    <h2>Trò Chơi Tạm Dừng</h2>
+                    <p>Nhấn phím Space hoặc nút Tiếp tục để chơi tiếp.</p>
+                    <button class="btn" id="resumeOverlayBtn">Tiếp Tục</button>
+                </div>
+
+                <div id="gameOverOverlay" class="overlay hidden">
+                    <h2>Kết Thúc</h2>
+                    <p>Điểm của bạn: <span id="finalScore" style="color: #222; font-weight: bold;">0</span></p>
+                    <button class="btn" id="restartOverlayBtn">Chơi Lại</button>
                 </div>
             </div>
 
@@ -35,7 +56,6 @@
                     <span>Màu rắn:</span>
                     <div class="color-options" id="colorOptions">
                         <div class="color-dot active" data-color="#2ecc71" style="background-color: #2ecc71;"></div>
-                        <div class="color-dot" data-color="#e74c3c" style="background-color: #e74c3c;"></div>
                         <div class="color-dot" data-color="#3498db" style="background-color: #3498db;"></div>
                         <div class="color-dot" data-color="#f1c40f" style="background-color: #f1c40f;"></div>
                     </div>

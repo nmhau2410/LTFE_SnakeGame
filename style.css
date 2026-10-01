@@ -244,3 +244,29 @@ canvas {
     text-align: center;
     line-height: 1.3;
 }
+
+.levels-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.level-btn {
+    background-color: #f0f0f0;
+    color: #333333;
+    border: 1px solid #dcdcdc;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.level-btn:hover, .level-btn.selected {
+    background-color: #111111;
+    color: #ffffff;
+    border-color: #111111;
+}
