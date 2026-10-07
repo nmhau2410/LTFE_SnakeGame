@@ -2,8 +2,10 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 const currentScoreEl = document.getElementById('currentScore');
-const highScoreEl = document.getElementById('highScore');
+const targetScoreEl = document.getElementById('targetScore');
 const finalScoreEl = document.getElementById('finalScore');
+const gameOverTitle = document.getElementById('gameOverTitle');
+const levelDescriptionEl = document.getElementById('levelDescription');
 
 const startOverlay = document.getElementById('startOverlay');
 const levelOverlay = document.getElementById('levelOverlay');
@@ -30,7 +32,7 @@ let food = { x: 0, y: 0 };
 let dx = 0;
 let dy = 0;
 let score = 0;
-let highScore = localStorage.getItem('snake_highscore_light_v7') || 0;
+let targetScore = 400;
 let gameInterval = null;
 let currentLevel = 1;
 let snakeColor = '#2ecc71';
@@ -38,7 +40,20 @@ let changingDirection = false;
 let isPaused = false;
 let gameStarted = false;
 
-highScoreEl.textContent = highScore;
+const levelDescriptions = {
+    1: "Mô tả level 1: Ăn đủ 400 điểm mục tiêu để chiến thắng cơ bản.",
+    2: "mô tả level",
+    3: "mô tả level",
+    4: "mô tả level",
+    5: "mô tả level",
+    6: "mô tả level",
+    7: "mô tả level",
+    8: "mô tả level",
+    9: "mô tả level",
+    10: "mô tả level"
+};
+
+targetScoreEl.textContent = targetScore;
 
 for (let i = 1; i <= 10; i++) {
     const btn = document.createElement('button');
@@ -49,6 +64,8 @@ for (let i = 1; i <= 10; i++) {
         document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         currentLevel = parseInt(btn.dataset.level);
+
+        levelDescriptionEl.textContent = levelDescriptions[currentLevel] || "mô tả level";
     });
     levelsGrid.appendChild(btn);
 }
@@ -132,6 +149,10 @@ function startGame() {
     ];
     score = 0;
     currentScoreEl.textContent = score;
+
+    targetScore = currentLevel === 1 ? 400 : 100;
+    targetScoreEl.textContent = targetScore;
+
     dx = 1;
     dy = 0;
 
@@ -147,24 +168,6 @@ function startGame() {
 function initLevel(level) {
     switch (level) {
         case 1:
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        case 4:
-            break;
-        case 5:
-            break;
-        case 6:
-            break;
-        case 7:
-            break;
-        case 8:
-            break;
-        case 9:
-            break;
-        case 10:
             break;
         default:
             break;
@@ -195,17 +198,25 @@ function gameLoop() {
     updateLevelLogic();
 
     moveSnake();
+
+    if (score >= targetScore) {
+        clearInterval(gameInterval);
+        gameStarted = false;
+        pauseBtn.style.display = 'inline-block';
+        resumeBtn.style.display = 'none';
+        finalScoreEl.textContent = score;
+        gameOverTitle.textContent = "Chiến Thắng! 🎉";
+        gameOverOverlay.classList.remove('hidden');
+        return;
+    }
+
     if (checkGameOver()) {
         clearInterval(gameInterval);
         gameStarted = false;
         pauseBtn.style.display = 'inline-block';
         resumeBtn.style.display = 'none';
         finalScoreEl.textContent = score;
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('snake_highscore_light_v7', highScore);
-            highScoreEl.textContent = highScore;
-        }
+        gameOverTitle.textContent = "Kết Thúc";
         gameOverOverlay.classList.remove('hidden');
         return;
     }

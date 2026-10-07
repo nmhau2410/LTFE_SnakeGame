@@ -17,7 +17,7 @@
                     Điểm: <span id="currentScore">0</span>
                 </div>
                 <div class="score-box">
-                    Kỷ lục: <span id="highScore">0</span>
+                    Mục tiêu: <span id="targetScore">50</span>
                 </div>
             </div>
 
@@ -33,9 +33,13 @@
                 <div id="levelOverlay" class="overlay hidden">
                     <h2>Chọn Cấp Độ</h2>
                     <p>Chọn level từ 1 đến 10</p>
-                    <div class="levels-grid" id="levelsGrid">
+                    <div class="levels-grid" id="levelsGrid"></div>
+
+                    <div id="levelDescription" class="level-desc-box">
+                        Mô tả level 1: Ăn đủ điểm mục tiêu để chiến thắng cơ bản.
                     </div>
-                    <button class="btn" id="confirmLevelBtn" style="width: 100%; max-width: 260px;">Chơi Ngay</button>
+
+                    <button class="btn" id="confirmLevelBtn" style="width: 100%; max-width: 260px; margin-top: 10px;">Chơi Ngay</button>
                 </div>
 
                 <div id="pauseOverlay" class="overlay hidden">
@@ -45,7 +49,7 @@
                 </div>
 
                 <div id="gameOverOverlay" class="overlay hidden">
-                    <h2>Kết Thúc</h2>
+                    <h2 id="gameOverTitle">Kết Thúc</h2>
                     <p>Điểm của bạn: <span id="finalScore" style="color: #222; font-weight: bold;">0</span></p>
                     <button class="btn" id="restartOverlayBtn">Chơi Lại</button>
                 </div>
