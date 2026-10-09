@@ -28,11 +28,11 @@ const GRID_SIZE = 20;
 const TILE_COUNT = canvas.width / GRID_SIZE;
 
 let snake = [];
-let food = { x: 0, y: 0 };
+let food = { x: 0, y: 0, spawnTime: 0, state: 'normal' };
 let dx = 0;
 let dy = 0;
 let score = 0;
-let targetScore = 400;
+let targetScore = 300;
 let gameInterval = null;
 let currentLevel = 1;
 let snakeColor = '#2ecc71';
@@ -41,8 +41,8 @@ let isPaused = false;
 let gameStarted = false;
 
 const levelDescriptions = {
-    1: "Mô tả level 1: Ăn đủ 400 điểm mục tiêu để chiến thắng cơ bản.",
-    2: "mô tả level",
+    1: "Mô tả level 1: Ăn đủ 300 điểm mục tiêu để chiến thắng cơ bản.",
+    2: "Mô tả level 2: Thức ăn đếm ngược 6s. Sau 4s đổi màu vàng (ít điểm hơn), qua 6s đổi màu đỏ sẫm (trừ điểm nhưng vẫn dài ra).",
     3: "mô tả level",
     4: "mô tả level",
     5: "mô tả level",
@@ -150,7 +150,7 @@ function startGame() {
     score = 0;
     currentScoreEl.textContent = score;
 
-    targetScore = currentLevel === 1 ? 400 : 100;
+    targetScore = 300;
     targetScoreEl.textContent = targetScore;
 
     dx = 1;
@@ -167,7 +167,7 @@ function startGame() {
 
 function initLevel(level) {
     switch (level) {
-        case 1:
+        case 2:
             break;
         default:
             break;
@@ -178,6 +178,16 @@ function updateLevelLogic() {
     switch (currentLevel) {
         case 1:
             break;
+        case 2:
+            const elapsedTime = (Date.now() - food.spawnTime) / 1000;
+            if (elapsedTime > 6) {
+                food.state = 'danger';
+            } else if (elapsedTime > 4) {
+                food.state = 'warning';
+            } else {
+                food.state = 'normal';
+            }
+            break;
         default:
             break;
     }
@@ -186,6 +196,8 @@ function updateLevelLogic() {
 function drawLevelElements() {
     switch (currentLevel) {
         case 1:
+            break;
+        case 2:
             break;
         default:
             break;
@@ -260,7 +272,24 @@ function moveSnake() {
     snake.unshift(head);
 
     if (head.x === food.x && head.y === food.y) {
-        score += 10;
+        switch (currentLevel) {
+            case 1:
+                score += 10;
+                break;
+            case 2:
+                if (food.state === 'normal') {
+                    score += 10;
+                } else if (food.state === 'warning') {
+                    score += 3;
+                } else if (food.state === 'danger') {
+                    score -= 5;
+                    if (score < 0) score = 0;
+                }
+                break;
+            default:
+                break;
+        }
+
         currentScoreEl.textContent = score;
         spawnFood();
     } else {
@@ -271,6 +300,8 @@ function moveSnake() {
 function spawnFood() {
     food.x = Math.floor(Math.random() * TILE_COUNT);
     food.y = Math.floor(Math.random() * TILE_COUNT);
+    food.spawnTime = Date.now();
+    food.state = 'normal';
 
     snake.forEach(part => {
         if (part.x === food.x && part.y === food.y) {
@@ -280,8 +311,76 @@ function spawnFood() {
 }
 
 function drawFood() {
-    ctx.fillStyle = "#e74c3c";
-    ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+    let foodColor = "#e74c3c";
+    switch (currentLevel) {
+        case 1:
+            ctx.fillStyle = foodColor;
+            ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+            break;
+        case 2:
+            const elapsedTime = (Date.now() - food.spawnTime) / 1000;
+
+            let showBorder = true;
+            let borderColor = "#e74c3c";
+            let progress = 1;
+
+            if (elapsedTime <= 4) {
+                foodColor = "#e74c3c";
+                borderColor = "#e74c3c";
+                progress = Math.max(0, 1 - (elapsedTime / 4));
+            } else if (elapsedTime <= 6) {
+                foodColor = "#f1c40f";
+                borderColor = "#f1c40f";
+                progress = Math.max(0, 1 - ((elapsedTime - 4) / 2));
+            } else {
+                foodColor = "#8b0000";
+                showBorder = false;
+            }
+
+            ctx.fillStyle = foodColor;
+            ctx.fillRect(food.x * GRID_SIZE + 2, food.y * GRID_SIZE + 2, GRID_SIZE - 4, GRID_SIZE - 4);
+
+            if (showBorder) {
+                ctx.save();
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 2;
+
+                let x = food.x * GRID_SIZE;
+                let y = food.y * GRID_SIZE;
+                let size = GRID_SIZE;
+                let perimeter = size * 4;
+                let currentPerimeter = perimeter * progress;
+
+                ctx.beginPath();
+                let len = Math.min(currentPerimeter, size);
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + len, y);
+                currentPerimeter -= len;
+
+                if (currentPerimeter > 0) {
+                    len = Math.min(currentPerimeter, size);
+                    ctx.lineTo(x + size, y + len);
+                    currentPerimeter -= len;
+                }
+
+                if (currentPerimeter > 0) {
+                    len = Math.min(currentPerimeter, size);
+                    ctx.lineTo(x + size - len, y + size);
+                    currentPerimeter -= len;
+                }
+
+                if (currentPerimeter > 0) {
+                    len = Math.min(currentPerimeter, size);
+                    ctx.lineTo(x, y + size - len);
+                }
+
+                ctx.stroke();
+                ctx.restore();
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 function checkGameOver() {
