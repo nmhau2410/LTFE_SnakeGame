@@ -1,5 +1,4 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const gameTable = document.getElementById("game");
 
 const currentScoreEl = document.getElementById('currentScore');
 const targetScoreEl = document.getElementById('targetScore');
@@ -24,13 +23,14 @@ const pauseBtn = document.getElementById('pauseBtn');
 const levelsGrid = document.getElementById('levelsGrid');
 const colorOptions = document.getElementById('colorOptions');
 
-const GRID_SIZE = 20;
-const TILE_COUNT = canvas.width / GRID_SIZE;
+const ROW = 20;
+const COL = 20;
 
 let snake = [];
-let food = { x: 0, y: 0, spawnTime: 0, state: 'normal' };
+let food = { x: 0, y: 0, spawnTime: 0, remainingTime: 6000, state: 'normal' };
+let lastFrameTime = 0;
 let dx = 0;
-let dy = 0;
+let dy = 1;
 let score = 0;
 let targetScore = 300;
 let gameInterval = null;
@@ -42,7 +42,7 @@ let gameStarted = false;
 
 const levelDescriptions = {
     1: "Mô tả level 1: Ăn đủ 300 điểm mục tiêu để chiến thắng cơ bản.",
-    2: "Mô tả level 2: Thức ăn đếm ngược 6s. Sau 4s đổi màu vàng (ít điểm hơn), qua 6s đổi màu đỏ sẫm (trừ điểm nhưng vẫn dài ra).",
+    2: "Mô tả level 2: Thức ăn đếm ngược 6s có viền border trực quan. Sau 4s đổi màu vàng, qua 6s đổi màu đỏ sẫm trừ điểm nhưng vẫn dài ra.",
     3: "mô tả level",
     4: "mô tả level",
     5: "mô tả level",
@@ -55,6 +55,20 @@ const levelDescriptions = {
 
 targetScoreEl.textContent = targetScore;
 
+function initGame() {
+    gameTable.innerHTML = "";
+    for (let i = 0; i < ROW; i++) {
+        let tr = document.createElement("tr");
+        for (let j = 0; j < COL; j++) {
+            let td = document.createElement("td");
+            td.id = `cell_${i}_${j}`;
+            tr.appendChild(td);
+        }
+        gameTable.appendChild(tr);
+    }
+}
+initGame();
+
 for (let i = 1; i <= 10; i++) {
     const btn = document.createElement('button');
     btn.className = `level-btn ${i === 1 ? 'selected' : ''}`;
@@ -64,7 +78,6 @@ for (let i = 1; i <= 10; i++) {
         document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         currentLevel = parseInt(btn.dataset.level);
-
         levelDescriptionEl.textContent = levelDescriptions[currentLevel] || "mô tả level";
     });
     levelsGrid.appendChild(btn);
@@ -126,14 +139,26 @@ function togglePause() {
         pauseBtn.style.display = 'inline-block';
         resumeBtn.style.display = 'none';
 
-        const fixedSpeed = 130;
-        gameInterval = setInterval(gameLoop, fixedSpeed);
+        food.spawnTime = Date.now() - (6000 - food.remainingTime);
+        lastFrameTime = Date.now();
+
+        gameInterval = setInterval(gameLoop, 130);
     }
 }
 
 pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', togglePause);
 resumeOverlayBtn.addEventListener('click', togglePause);
+
+function initSnake() {
+    let x = Math.floor(Math.random() * (ROW - 6)) + 3;
+    let y = Math.floor(Math.random() * (COL - 6)) + 3;
+
+    return [
+        { x: x, y: y - 1 },
+        { x: x, y: y }
+    ];
+}
 
 function startGame() {
     gameStarted = true;
@@ -142,36 +167,21 @@ function startGame() {
     pauseBtn.style.display = 'inline-block';
     resumeBtn.style.display = 'none';
 
-    snake = [
-        { x: 10, y: 10 },
-        { x: 9, y: 10 },
-        { x: 8, y: 10 }
-    ];
+    snake = initSnake();
     score = 0;
     currentScoreEl.textContent = score;
 
     targetScore = 300;
     targetScoreEl.textContent = targetScore;
 
-    dx = 1;
-    dy = 0;
+    dx = 0;
+    dy = 1;
 
-    initLevel(currentLevel);
     spawnFood();
 
     if (gameInterval) clearInterval(gameInterval);
-
-    const fixedSpeed = 130;
-    gameInterval = setInterval(gameLoop, fixedSpeed);
-}
-
-function initLevel(level) {
-    switch (level) {
-        case 2:
-            break;
-        default:
-            break;
-    }
+    lastFrameTime = Date.now();
+    gameInterval = setInterval(gameLoop, 130);
 }
 
 function updateLevelLogic() {
@@ -179,10 +189,19 @@ function updateLevelLogic() {
         case 1:
             break;
         case 2:
-            const elapsedTime = (Date.now() - food.spawnTime) / 1000;
-            if (elapsedTime > 6) {
+            let now = Date.now();
+            let delta = now - lastFrameTime;
+            lastFrameTime = now;
+
+            if (!isPaused) {
+                food.remainingTime -= delta;
+            }
+
+            let elapsedSeconds = (6000 - food.remainingTime) / 1000;
+
+            if (elapsedSeconds > 6) {
                 food.state = 'danger';
-            } else if (elapsedTime > 4) {
+            } else if (elapsedSeconds > 4) {
                 food.state = 'warning';
             } else {
                 food.state = 'normal';
@@ -193,22 +212,10 @@ function updateLevelLogic() {
     }
 }
 
-function drawLevelElements() {
-    switch (currentLevel) {
-        case 1:
-            break;
-        case 2:
-            break;
-        default:
-            break;
-    }
-}
-
 function gameLoop() {
     changingDirection = false;
 
     updateLevelLogic();
-
     moveSnake();
 
     if (score >= targetScore) {
@@ -217,7 +224,7 @@ function gameLoop() {
         pauseBtn.style.display = 'inline-block';
         resumeBtn.style.display = 'none';
         finalScoreEl.textContent = score;
-        gameOverTitle.textContent = "Chiến Thắng! 🎉";
+        gameOverTitle.textContent = "Bạn đã thắngggggg";
         gameOverOverlay.classList.remove('hidden');
         return;
     }
@@ -232,56 +239,25 @@ function gameLoop() {
         gameOverOverlay.classList.remove('hidden');
         return;
     }
-    clearCanvas();
-    drawGrid();
-    drawFood();
-    drawSnake();
-    drawLevelElements();
-}
 
-function clearCanvas() {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawGrid() {
-    ctx.strokeStyle = "#cbd5e1";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= TILE_COUNT; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * GRID_SIZE, 0);
-        ctx.lineTo(i * GRID_SIZE, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * GRID_SIZE);
-        ctx.lineTo(canvas.width, i * GRID_SIZE);
-        ctx.stroke();
-    }
-}
-
-function drawSnake() {
-    snake.forEach((part) => {
-        ctx.fillStyle = snakeColor;
-        ctx.fillRect(part.x * GRID_SIZE, part.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
-    });
+    render();
 }
 
 function moveSnake() {
-    const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-    snake.unshift(head);
+    let head = snake[snake.length - 1];
+    let newHead = { x: head.x + dx, y: head.y + dy };
 
-    if (head.x === food.x && head.y === food.y) {
+    snake.push(newHead);
+
+    if (newHead.x === food.x && newHead.y === food.y) {
         switch (currentLevel) {
             case 1:
                 score += 10;
                 break;
             case 2:
-                if (food.state === 'normal') {
-                    score += 10;
-                } else if (food.state === 'warning') {
-                    score += 3;
-                } else if (food.state === 'danger') {
+                if (food.state === 'normal') score += 10;
+                else if (food.state === 'warning') score += 3;
+                else if (food.state === 'danger') {
                     score -= 5;
                     if (score < 0) score = 0;
                 }
@@ -289,18 +265,19 @@ function moveSnake() {
             default:
                 break;
         }
-
         currentScoreEl.textContent = score;
         spawnFood();
     } else {
-        snake.pop();
+        snake.shift();
     }
 }
 
 function spawnFood() {
-    food.x = Math.floor(Math.random() * TILE_COUNT);
-    food.y = Math.floor(Math.random() * TILE_COUNT);
+    food.x = Math.floor(Math.random() * ROW);
+    food.y = Math.floor(Math.random() * COL);
     food.spawnTime = Date.now();
+    food.remainingTime = 6000;
+    lastFrameTime = Date.now();
     food.state = 'normal';
 
     snake.forEach(part => {
@@ -310,87 +287,87 @@ function spawnFood() {
     });
 }
 
-function drawFood() {
-    let foodColor = "#e74c3c";
-    switch (currentLevel) {
-        case 1:
-            ctx.fillStyle = foodColor;
-            ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
-            break;
-        case 2:
-            const elapsedTime = (Date.now() - food.spawnTime) / 1000;
+function render() {
+    for (let i = 0; i < ROW; i++) {
+        for (let j = 0; j < COL; j++) {
+            let cell = document.getElementById(`cell_${i}_${j}`);
+            if (cell) {
+                cell.style.backgroundColor = "";
+                cell.className = "";
+                cell.innerHTML = "";
+            }
+        }
+    }
 
-            let showBorder = true;
-            let borderColor = "#e74c3c";
-            let progress = 1;
+    let foodCell = document.getElementById(`cell_${food.x}_${food.y}`);
+    if (foodCell) {
+        if (currentLevel === 2) {
+            let elapsedSeconds = (6000 - food.remainingTime) / 1000;
+            let percentage = 0;
+            let borderColor = "transparent";
+            let coreClass = "red";
 
-            if (elapsedTime <= 4) {
-                foodColor = "#e74c3c";
+            if (elapsedSeconds <= 4) {
+                percentage = ((4 - elapsedSeconds) / 4) * 100;
                 borderColor = "#e74c3c";
-                progress = Math.max(0, 1 - (elapsedTime / 4));
-            } else if (elapsedTime <= 6) {
-                foodColor = "#f1c40f";
+                coreClass = "red";
+            } else if (elapsedSeconds <= 6) {
+                percentage = ((6 - elapsedSeconds) / 2) * 100;
                 borderColor = "#f1c40f";
-                progress = Math.max(0, 1 - ((elapsedTime - 4) / 2));
+                coreClass = "yellow";
             } else {
-                foodColor = "#8b0000";
-                showBorder = false;
+                percentage = 0;
+                borderColor = "transparent";
+                coreClass = "darkred";
             }
 
-            ctx.fillStyle = foodColor;
-            ctx.fillRect(food.x * GRID_SIZE + 2, food.y * GRID_SIZE + 2, GRID_SIZE - 4, GRID_SIZE - 4);
+            let container = document.createElement('div');
+            container.className = 'food-container';
 
-            if (showBorder) {
-                ctx.save();
-                ctx.strokeStyle = borderColor;
-                ctx.lineWidth = 2;
-
-                let x = food.x * GRID_SIZE;
-                let y = food.y * GRID_SIZE;
-                let size = GRID_SIZE;
-                let perimeter = size * 4;
-                let currentPerimeter = perimeter * progress;
-
-                ctx.beginPath();
-                let len = Math.min(currentPerimeter, size);
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + len, y);
-                currentPerimeter -= len;
-
-                if (currentPerimeter > 0) {
-                    len = Math.min(currentPerimeter, size);
-                    ctx.lineTo(x + size, y + len);
-                    currentPerimeter -= len;
-                }
-
-                if (currentPerimeter > 0) {
-                    len = Math.min(currentPerimeter, size);
-                    ctx.lineTo(x + size - len, y + size);
-                    currentPerimeter -= len;
-                }
-
-                if (currentPerimeter > 0) {
-                    len = Math.min(currentPerimeter, size);
-                    ctx.lineTo(x, y + size - len);
-                }
-
-                ctx.stroke();
-                ctx.restore();
+            let spinner = document.createElement('div');
+            spinner.className = 'food-border-spinner';
+            if (percentage > 0) {
+                spinner.style.background = `conic-gradient(${borderColor} ${percentage}%, transparent 0)`;
             }
-            break;
-        default:
-            break;
+
+            let cutout = document.createElement('div');
+            cutout.className = 'food-cutout';
+
+            let core = document.createElement('div');
+            core.className = `food-core ${coreClass}`;
+
+            cutout.appendChild(core);
+            spinner.appendChild(cutout);
+            container.appendChild(spinner);
+            foodCell.appendChild(container);
+
+        } else {
+            let container = document.createElement('div');
+            container.className = 'food-container';
+            let core = document.createElement('div');
+            core.className = 'food-core red';
+            container.appendChild(core);
+            foodCell.appendChild(container);
+        }
+    }
+
+    for (const part of snake) {
+        let partCell = document.getElementById(`cell_${part.x}_${part.y}`);
+        if (partCell) {
+            partCell.style.backgroundColor = snakeColor;
+            partCell.classList.add("snake-cell");
+        }
     }
 }
 
 function checkGameOver() {
-    const head = snake[0];
+    const head = snake[snake.length - 1];
 
-    if (head.x < 0 || head.x >= TILE_COUNT || head.y < 0 || head.y >= TILE_COUNT) {
+    if (head.x < 0 || head.x >= ROW || head.y < 0 || head.y >= COL) {
         return true;
     }
 
-    for (let i = 1; i < snake.length; i++) {
+    for (let i = 0; i < snake.length - 1; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
         }
@@ -420,8 +397,8 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') changeDirection(-1, 0);
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') changeDirection(0, -1);
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') changeDirection(1, 0);
-    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') changeDirection(0, 1);
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') changeDirection(0, -1);
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') changeDirection(-1, 0);
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') changeDirection(0, 1);
+    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') changeDirection(1, 0);
 });

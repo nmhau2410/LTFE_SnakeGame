@@ -78,18 +78,45 @@ h1 {
 
 .game-wrapper {
     position: relative;
-    width: 100%;
-    aspect-ratio: 1;
+    width: 540px;
+    height: 540px;
     background-color: #ffffff;
     border: 1px solid #dcdcdc;
     overflow: hidden;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
+.game-table {
+    border-collapse: collapse;
+    background-color: #fff;
+}
+
+.game-table td {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #cbd5e1;
+}
+
+.snake-cell {
+    border-radius: 3px;
+}
+
+.food-normal {
+    background-color: #e74c3c !important;
+    border-radius: 3px;
+}
+
+.food-warning {
+    background-color: #f1c40f !important;
+    border-radius: 3px;
+}
+
+.food-danger {
+    background-color: #8b0000 !important;
+    border-radius: 3px;
 }
 
 .external-side-controls {
@@ -287,3 +314,39 @@ canvas {
     justify-content: center;
     margin-bottom: 5px;
 }
+.food-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.food-border-spinner {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.food-cutout {
+    width: 20px;
+    height: 20px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.food-core {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+}
+
+.food-core.red { background-color: #e74c3c; }
+.food-core.yellow { background-color: #f1c40f; }
+.food-core.darkred { background-color: #8b0000; }
