@@ -27,7 +27,7 @@ const ROW = 20;
 const COL = 20;
 
 let snake = [];
-let food = { x: 0, y: 0, spawnTime: 0, remainingTime: 6000, state: 'normal' };
+let food = {x: 0, y: 0, spawnTime: 0, remainingTime: 6000, state: 'normal'};
 let lastFrameTime = 0;
 let dx = 0;
 let dy = 1;
@@ -39,11 +39,12 @@ let snakeColor = '#2ecc71';
 let changingDirection = false;
 let isPaused = false;
 let gameStarted = false;
+let portalTransition = null;
 
 const levelDescriptions = {
     1: "Mô tả level 1: Ăn đủ 300 điểm mục tiêu để chiến thắng cơ bản.",
     2: "Mô tả level 2: Thức ăn đếm ngược 6s có viền border trực quan. Sau 4s đổi màu vàng, qua 6s đổi màu đỏ sẫm trừ điểm nhưng vẫn dài ra.",
-    3: "mô tả level",
+    3: "Khi ăn, đầu rắn nhảy đến một ô an toàn khác; thân rắn tiếp tục di chuyển và từng đốt lần lượt xuất hiện phía sau đầu như đi qua cổng.",
     4: "mô tả level",
     5: "mô tả level",
     6: "mô tả level",
@@ -67,6 +68,7 @@ function initGame() {
         gameTable.appendChild(tr);
     }
 }
+
 initGame();
 
 for (let i = 1; i <= 10; i++) {
@@ -154,15 +156,13 @@ function initSnake() {
     let x = Math.floor(Math.random() * (ROW - 6)) + 3;
     let y = Math.floor(Math.random() * (COL - 6)) + 3;
 
-    return [
-        { x: x, y: y - 1 },
-        { x: x, y: y }
-    ];
+    return [{x: x, y: y - 1}, {x: x, y: y}];
 }
 
 function startGame() {
     gameStarted = true;
     isPaused = false;
+    portalTransition = null;
     pauseOverlay.classList.add('hidden');
     pauseBtn.style.display = 'inline-block';
     resumeBtn.style.display = 'none';
@@ -207,6 +207,8 @@ function updateLevelLogic() {
                 food.state = 'normal';
             }
             break;
+        case 3:
+            break;
         default:
             break;
     }
@@ -216,7 +218,11 @@ function gameLoop() {
     changingDirection = false;
 
     updateLevelLogic();
-    moveSnake();
+    if (portalTransition) {
+        advancePortalTransition();
+    } else {
+        moveSnake();
+    }
 
     if (score >= targetScore) {
         clearInterval(gameInterval);
@@ -245,7 +251,7 @@ function gameLoop() {
 
 function moveSnake() {
     let head = snake[snake.length - 1];
-    let newHead = { x: head.x + dx, y: head.y + dy };
+    let newHead = {x: head.x + dx, y: head.y + dy};
 
     snake.push(newHead);
 
@@ -255,17 +261,21 @@ function moveSnake() {
                 score += 10;
                 break;
             case 2:
-                if (food.state === 'normal') score += 10;
-                else if (food.state === 'warning') score += 3;
-                else if (food.state === 'danger') {
+                if (food.state === 'normal') score += 10; else if (food.state === 'warning') score += 3; else if (food.state === 'danger') {
                     score -= 5;
                     if (score < 0) score = 0;
                 }
+                break;
+            case 3:
+                score += 10;
                 break;
             default:
                 break;
         }
         currentScoreEl.textContent = score;
+        if (currentLevel === 3) {
+            teleportSnake();
+        }
         spawnFood();
     } else {
         snake.shift();
@@ -279,12 +289,99 @@ function spawnFood() {
     food.remainingTime = 6000;
     lastFrameTime = Date.now();
     food.state = 'normal';
+    placeFoodInSafeCell();
+}
 
-    snake.forEach(part => {
-        if (part.x === food.x && part.y === food.y) {
-            spawnFood();
+function placeFoodInSafeCell() {
+    const occupiedCells = new Set(snake.map(part => `${part.x},${part.y}`));
+    portalTransition?.exitCells.forEach(part => occupiedCells.add(`${part.x},${part.y}`));
+    const availableCells = [];
+
+    for (let x = 0; x < ROW; x++) {
+        for (let y = 0; y < COL; y++) {
+            if (!occupiedCells.has(`${x},${y}`)) {
+                availableCells.push({x, y});
+            }
         }
-    });
+    }
+
+    if (availableCells.length === 0) return;
+
+    const nextFood = availableCells[Math.floor(Math.random() * availableCells.length)];
+    food.x = nextFood.x;
+    food.y = nextFood.y;
+}
+
+function teleportSnake() {
+    const head = snake[snake.length - 1];
+    const occupiedCells = new Set(snake.map(part => `${part.x},${part.y}`));
+    const directions = [{x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}];
+    const destinations = [];
+
+    for (let x = 0; x < ROW; x++) {
+        for (let y = 0; y < COL; y++) {
+            if (occupiedCells.has(`${x},${y}`)) continue;
+
+            for (const direction of directions) {
+                const exitCells = [];
+                let isSafe = true;
+
+                for (let offset = 1; offset < snake.length; offset++) {
+                    const exitCell = {x: x - direction.x * offset, y: y - direction.y * offset};
+                    const key = `${exitCell.x},${exitCell.y}`;
+                    if (exitCell.x < 0 || exitCell.x >= ROW || exitCell.y < 0 || exitCell.y >= COL || occupiedCells.has(key) || (exitCell.x === head.x && exitCell.y === head.y)) {
+                        isSafe = false;
+                        break;
+                    }
+                    exitCells.push(exitCell);
+                }
+
+                for (let offset = 1; offset <= Math.min(2, ROW, COL); offset++) {
+                    const nextHead = {x: x + direction.x * offset, y: y + direction.y * offset};
+                    if (nextHead.x < 0 || nextHead.x >= ROW || nextHead.y < 0 || nextHead.y >= COL || occupiedCells.has(`${nextHead.x},${nextHead.y}`)) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+
+                if (isSafe) {
+                    destinations.push({position: {x, y}, direction, exitCells});
+                }
+            }
+        }
+    }
+
+    if (destinations.length === 0) return;
+
+    const destination = destinations[Math.floor(Math.random() * destinations.length)];
+    snake[snake.length - 1] = destination.position;
+    dx = destination.direction.x;
+    dy = destination.direction.y;
+    portalTransition = {exitCells: destination.exitCells, movedSegments: 0};
+}
+
+function advancePortalTransition() {
+    const oldSnake = snake.map(part => ({...part}));
+    const oldHead = oldSnake[oldSnake.length - 1];
+    const nextHead = {x: oldHead.x + dx, y: oldHead.y + dy};
+    snake[snake.length - 1] = nextHead;
+
+    for (let offset = 0; offset <= portalTransition.movedSegments; offset++) {
+        const segmentIndex = snake.length - 2 - offset;
+        snake[segmentIndex] = oldSnake[segmentIndex + 1];
+    }
+
+    portalTransition.movedSegments++;
+
+    if (portalTransition.movedSegments >= snake.length - 1) {
+        portalTransition = null;
+    }
+
+    if (nextHead.x === food.x && nextHead.y === food.y) {
+        score += 10;
+        currentScoreEl.textContent = score;
+        spawnFood();
+    }
 }
 
 function render() {
@@ -351,13 +448,17 @@ function render() {
         }
     }
 
-    for (const part of snake) {
+    snake.forEach((part, index) => {
         let partCell = document.getElementById(`cell_${part.x}_${part.y}`);
         if (partCell) {
             partCell.style.backgroundColor = snakeColor;
             partCell.classList.add("snake-cell");
+            if (index === snake.length - 1) {
+                partCell.classList.add('snake-head');
+                if (dy > 0) partCell.classList.add('head-right'); else if (dy < 0) partCell.classList.add('head-left'); else if (dx > 0) partCell.classList.add('head-down'); else partCell.classList.add('head-up');
+            }
         }
-    }
+    });
 }
 
 function checkGameOver() {

@@ -104,6 +104,61 @@ h1 {
     border-radius: 3px;
 }
 
+.snake-head {
+    position: relative;
+}
+
+.snake-head::before,
+.snake-head::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #17202a;
+    z-index: 1;
+}
+
+.head-right::before,
+.head-right::after {
+    right: 1px;
+}
+
+.head-right::before,
+.head-left::before {
+    top: 2px;
+}
+
+.head-right::after,
+.head-left::after {
+    bottom: 2px;
+}
+
+.head-left::before,
+.head-left::after {
+    left: 1px;
+}
+
+.head-down::before,
+.head-down::after {
+    bottom: 1px;
+}
+
+.head-down::before,
+.head-up::before {
+    left: 2px;
+}
+
+.head-down::after,
+.head-up::after {
+    right: 2px;
+}
+
+.head-up::before,
+.head-up::after {
+    top: 1px;
+}
+
 .food-normal {
     background-color: #e74c3c !important;
     border-radius: 3px;
