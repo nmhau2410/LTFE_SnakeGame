@@ -25,6 +25,7 @@ const colorOptions = document.getElementById('colorOptions');
 
 const ROW = 20;
 const COL = 20;
+const GAME_SPEED = 150;
 
 let snake = [];
 let food = {x: 0, y: 0, spawnTime: 0, remainingTime: 6000, state: 'normal'};
@@ -40,12 +41,13 @@ let changingDirection = false;
 let isPaused = false;
 let gameStarted = false;
 let portalTransition = null;
+let obstacles = [];
 
 const levelDescriptions = {
-    1: "Mô tả level 1: Ăn đủ 300 điểm mục tiêu để chiến thắng cơ bản.",
-    2: "Mô tả level 2: Thức ăn đếm ngược 6s có viền border trực quan. Sau 4s đổi màu vàng, qua 6s đổi màu đỏ sẫm trừ điểm nhưng vẫn dài ra.",
-    3: "Khi ăn, đầu rắn nhảy đến một ô an toàn khác; thân rắn tiếp tục di chuyển và từng đốt lần lượt xuất hiện phía sau đầu như đi qua cổng.",
-    4: "mô tả level",
+    1: "Mô tả level 1: Ăn đủ 300 điểm mục tiêu để chiến thắng cơ bản",
+    2: "Mô tả level 2: Thức ăn đếm ngược 6s có viền border trực quan. Sau 4s đổi màu vàng, qua 6s đổi màu đỏ sẫm trừ điểm nhưng vẫn dài ra",
+    3: "Khi ăn thức ăn rắn sẽ được dịch chuyển đến vị trí an toàn khác",
+    4: "Có 3 chướng ngại vật di chuyển ngang hoặc dọc",
     5: "mô tả level",
     6: "mô tả level",
     7: "mô tả level",
@@ -144,7 +146,7 @@ function togglePause() {
         food.spawnTime = Date.now() - (6000 - food.remainingTime);
         lastFrameTime = Date.now();
 
-        gameInterval = setInterval(gameLoop, 130);
+        gameInterval = setInterval(gameLoop, GAME_SPEED);
     }
 }
 
@@ -163,6 +165,7 @@ function startGame() {
     gameStarted = true;
     isPaused = false;
     portalTransition = null;
+    obstacles = [];
     pauseOverlay.classList.add('hidden');
     pauseBtn.style.display = 'inline-block';
     resumeBtn.style.display = 'none';
@@ -178,10 +181,12 @@ function startGame() {
     dy = 1;
 
     spawnFood();
+    if (currentLevel === 4) initObstacles();
+    render();
 
     if (gameInterval) clearInterval(gameInterval);
     lastFrameTime = Date.now();
-    gameInterval = setInterval(gameLoop, 130);
+    gameInterval = setInterval(gameLoop, GAME_SPEED);
 }
 
 function updateLevelLogic() {
@@ -208,6 +213,9 @@ function updateLevelLogic() {
             }
             break;
         case 3:
+            break;
+        case 4:
+            moveObstacles();
             break;
         default:
             break;
@@ -269,6 +277,9 @@ function moveSnake() {
             case 3:
                 score += 10;
                 break;
+            case 4:
+                score += 10;
+                break;
             default:
                 break;
         }
@@ -295,6 +306,7 @@ function spawnFood() {
 function placeFoodInSafeCell() {
     const occupiedCells = new Set(snake.map(part => `${part.x},${part.y}`));
     portalTransition?.exitCells.forEach(part => occupiedCells.add(`${part.x},${part.y}`));
+    obstacles.forEach(obstacle => occupiedCells.add(`${obstacle.x},${obstacle.y}`));
     const availableCells = [];
 
     for (let x = 0; x < ROW; x++) {
@@ -310,6 +322,51 @@ function placeFoodInSafeCell() {
     const nextFood = availableCells[Math.floor(Math.random() * availableCells.length)];
     food.x = nextFood.x;
     food.y = nextFood.y;
+}
+
+function initObstacles() {
+    const obstacleCount = 3;
+    const occupiedCells = new Set(snake.map(part => `${part.x},${part.y}`));
+    occupiedCells.add(`${food.x},${food.y}`);
+    obstacles = [];
+
+    for (let i = 0; i < obstacleCount; i++) {
+        const availableCells = [];
+        for (let x = 0; x < ROW; x++) {
+            for (let y = 0; y < COL; y++) {
+                if (!occupiedCells.has(`${x},${y}`)) availableCells.push({x, y});
+            }
+        }
+        if (availableCells.length === 0) break;
+
+        const position = availableCells[Math.floor(Math.random() * availableCells.length)];
+        occupiedCells.add(`${position.x},${position.y}`);
+        const movesHorizontally = Math.random() < 0.5;
+        const direction = Math.random() < 0.5 ? -1 : 1;
+        obstacles.push({
+            ...position, dx: movesHorizontally ? 0 : direction, dy: movesHorizontally ? direction : 0
+        });
+    }
+}
+
+function moveObstacles() {
+    obstacles.forEach((obstacle, index) => {
+        let nextX = obstacle.x + obstacle.dx;
+        let nextY = obstacle.y + obstacle.dy;
+        const isBlocked = (x, y) => x < 0 || x >= ROW || y < 0 || y >= COL || snake.some(part => part.x === x && part.y === y) || (food.x === x && food.y === y) || obstacles.some((other, otherIndex) => otherIndex !== index && other.x === x && other.y === y);
+
+        if (isBlocked(nextX, nextY)) {
+            obstacle.dx *= -1;
+            obstacle.dy *= -1;
+            nextX = obstacle.x + obstacle.dx;
+            nextY = obstacle.y + obstacle.dy;
+        }
+
+        if (!isBlocked(nextX, nextY)) {
+            obstacle.x = nextX;
+            obstacle.y = nextY;
+        }
+    });
 }
 
 function teleportSnake() {
@@ -448,6 +505,11 @@ function render() {
         }
     }
 
+    obstacles.forEach(obstacle => {
+        const obstacleCell = document.getElementById(`cell_${obstacle.x}_${obstacle.y}`);
+        if (obstacleCell) obstacleCell.classList.add('obstacle-cell');
+    });
+
     snake.forEach((part, index) => {
         let partCell = document.getElementById(`cell_${part.x}_${part.y}`);
         if (partCell) {
@@ -472,6 +534,9 @@ function checkGameOver() {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             return true;
         }
+    }
+    if (obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
+        return true;
     }
     return false;
 }
